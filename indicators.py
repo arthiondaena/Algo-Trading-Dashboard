@@ -4,10 +4,10 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 class SMC:
-    def __init__(self, data):
+    def __init__(self, data, swing_hl_window_sz=10):
         self.data = data
         self.data['Date'] = self.data.index.to_series()
-        self.swing_hl_window_sz = 10
+        self.swing_hl_window_sz = swing_hl_window_sz
         self.order_blocks = self.order_block()
 
     def backtest_buy_signal(self):
@@ -168,7 +168,7 @@ class SMC:
             axis=1,
         ).dropna(subset=['OB'])
 
-    def plot(self, swing_hl=True):
+    def plot(self, swing_hl=True, show=True):
         fig = make_subplots(1, 1)
 
         # plot the candle stick graph
@@ -235,7 +235,9 @@ class SMC:
             ))
 
         fig.update_layout(xaxis_rangeslider_visible=False)
-        fig.show()
+        if show:
+            fig.show()
+        return fig
 
 
 if __name__ == "__main__":

@@ -11,11 +11,6 @@ class SMC_test(Strategy):
         self.smc_b = self.I(self.smc_buy, self.data.df)
         self.smc_s = self.I(self.smc_sell, self.data.df)
 
-        # signal = smc_b + smc_s
-        # print(signal)
-        #
-        # self.set_signal(signal)
-        # self.set_trailing_sl(2)
 
     def next(self):
         price = self.data.Close[-1]
@@ -45,9 +40,14 @@ class SMC_test(Strategy):
 class SMC_ema(SignalStrategy, TrailingStrategy):
     pass
 
-data = fetch('ICICIBANK.NS', period='1mo', interval='15m')
+def plot_backtest(data, strategy, filename, **kwargs):
+    bt = Backtest(data, strategy, **kwargs)
+    bt.run()
+    return bt.plot(filename=filename, open_browser=False)
 
-bt = Backtest(data, SMC_test, commission=.002)
+if __name__ == "__main__":
+    data = fetch('ICICIBANK.NS', period='1mo', interval='15m')
+    bt = Backtest(data, SMC_test, commission=.002)
 
-bt.run()
-bt.plot()
+    bt.run()
+    bt.plot()
