@@ -240,6 +240,9 @@ class SMC:
         return fig
 
 
+def EMA(array, n):
+    return pd.Series(array).ewm(span=n, adjust=False).mean()
+
 if __name__ == "__main__":
     from data_fetcher import fetch
     data = fetch('ICICIBANK.NS', period='1mo', interval='15m')

@@ -3,7 +3,7 @@ import dash_bootstrap_components as dbc
 import pandas as pd
 from indicators import SMC
 from data_fetcher import fetch
-from strategies import SMC_test, plot_backtest
+from strategies import smc_plot_backtest, smc_ema_plot_backtest
 
 # Load symbols data
 symbols = pd.read_csv('data/Ticker_List_NSE_India.csv')
@@ -27,6 +27,15 @@ app.layout = dbc.Container([
             className="mb-3"
         ),
 
+        html.Label("Select Strategy", className="form-label"),
+        dcc.Dropdown(
+            id="strategy",
+            options=['SMC', 'SMC with EMA'],
+            value='',
+            placeholder="Select Strategy",
+            className="mb-3"
+        ),
+
         html.Label("Swing High/Low Window Size", className="form-label"),
         dcc.Input(
             id="window",
@@ -36,8 +45,41 @@ app.layout = dbc.Container([
             className="form-control mb-3"
         ),
 
-        dbc.Button("Run", id="submit-button", color="primary", className="w-100 mb-4"),
     ]),
+
+    html.Div([
+        dbc.Row([
+            dbc.Col([
+                html.Label("Fast EMA Length: ", className="form-label"),
+                dcc.Input(
+                    id="ema1",
+                    type="number",
+                    value=9,
+                    placeholder="Enter EMA Length",
+                    # className="form-control mb-3"
+                    className = "text-nowrap"
+                ),
+            ], md=8),
+
+            dbc.Col([
+                html.Label("Slow EMA Length: ", className="form-label"),
+                dcc.Input(
+                    id="ema2",
+                    type="number",
+                    value=21,
+                    placeholder="Enter EMA size",
+                    # className="form-control mb-3"
+                    className="text-nowrap"
+                ),
+
+            dbc.Col([dcc.Checklist(['Close on EMA crossover'], id='closecross', className="text-nowrap")]),
+
+            ]),
+        ]),
+        ], style={'display': 'block'}, id='smc_ema'
+    ),
+
+    dbc.Button("Run", id="submit-button", color="primary", className="w-100 mb-4"),
 
     dbc.Row([
         html.H5("Order Block Chart", className="text-center mb-3"),
@@ -55,13 +97,29 @@ app.layout = dbc.Container([
     ])
 ], fluid=True)
 
+
+@callback(
+    Output("smc_ema", 'style'),
+    Input("strategy", 'value')
+)
+def update_layout(strategy):
+    if strategy=='SMC with EMA':
+        return {'display':'block'}
+    else:
+        return {'display':'none'}
+
+
 # Callback for updating the visualizations
 @callback(
     Input("submit-button", "n_clicks"),
     State("name", "value"),
-    State("window", "value")
+    State("window", "value"),
+    State("strategy", "value"),
+    State("ema1", "value"),
+    State("ema2", "value"),
+    State("closecross", "value")
 )
-def update_visuals(n_clicks, name, window):
+def update_visuals(n_clicks, name, window, strategy, ema1, ema2, closecross):
     if n_clicks <= 0 or not name:
         return
 
@@ -74,7 +132,12 @@ def update_visuals(n_clicks, name, window):
 
     fig = SMC(data=data, swing_hl_window_sz=window).plot(show=False).update_layout(title=dict(text=ticker))
 
-    plot_backtest(data, SMC_test, 'assets/backtest_results.html')
+    print(strategy)
+    if strategy=='SMC':
+        smc_plot_backtest(data, 'assets/backtest_results.html', swing_hl=window)
+    elif strategy=='SMC with EMA':
+        smc_ema_plot_backtest(data, 'assets/backtest_results.html', ema1, ema2, closecross)
+
     fig.write_html('assets/SMC.html')
 
 if __name__ == "__main__":
