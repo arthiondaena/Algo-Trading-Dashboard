@@ -91,7 +91,6 @@ class SMC_ema(SignalStrategy, TrailingStrategy):
 def smc_plot_backtest(data, filename, swing_hl, **kwargs):
     bt = Backtest(data, SMC_test, **kwargs)
     bt.run(swing_hl=swing_hl)
-    print('runned')
     return bt.plot(filename=filename, open_browser=False)
 
 def smc_ema_plot_backtest(data, filename, ema1, ema2, closecross, **kwargs):
