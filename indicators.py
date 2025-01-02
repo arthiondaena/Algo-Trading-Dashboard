@@ -8,10 +8,10 @@ class SMC:
         """
         Smart Money Concept
         :param data:
-            Should contain Open, High, Low, Close columns and 'Date' as index
+            Should contain Open, High, Low, Close columns and 'Date' as index.
         :type data: pd.DataFrame
         :param swing_hl_window_sz: {int}
-            CHoCH Detection Period
+            CHoCH Detection Period.
         """
         self.data = data
         self.data['Date'] = self.data.index.to_series()
@@ -23,44 +23,52 @@ class SMC:
     def backtest_buy_signal_ob(self):
         """
         :return:
-            Getting buy signals from order blocks mitigation index
+            Get buy signals from order blocks mitigation index.
         :rtype: np.ndarray
         """
+        # Get only bullish order blocks which are mitigated.
         bull_ob = self.order_blocks[(self.order_blocks['OB']==1) & (self.order_blocks['MitigatedIndex']!=0)]
         arr = np.zeros(len(self.data))
+        # Mark the mitigated indices with 1.
         arr[bull_ob['MitigatedIndex'].apply(lambda x: int(x))] = 1
         return arr
 
     def backtest_sell_signal_ob(self):
         """
         :return:
-            Getting sell signals from order blocks mitigation index
+            Get sell signals from order blocks mitigation index.
         :rtype: np.ndarray
         """
+        # Get only bearish order blocks which are mitigated.
         bear_ob = self.order_blocks[(self.order_blocks['OB'] == -1) & (self.order_blocks['MitigatedIndex'] != 0)]
         arr = np.zeros(len(self.data))
+        # Mark the mitigated indices with -1.
         arr[bear_ob['MitigatedIndex'].apply(lambda x: int(x))] = -1
         return arr
 
     def backtest_buy_signal_structure(self):
         """
         :return:
-            Getting buy signals from bullish structure broken index
+            Get buy signals from bullish structure broken index.
         :rtype: np.ndarray
         """
+        # Get only bullish structure.
         bull_struct = self.structure_map[(self.structure_map['BOS'] == 1) | (self.structure_map['CHOCH'] == 1)]
         arr = np.zeros(len(self.data))
+        # Mark the broken indices with 1.
         arr[bull_struct['BrokenIndex'].apply(lambda x: int(x))] = 1
         return arr
 
     def backtest_sell_signal_structure(self):
         """
         :return:
-            Getting buy signals from bullish structure broken index
+            Get buy signals from bullish structure broken index.
         :rtype: np.ndarray
         """
+        # Get only bearish structure.
         bull_struct = self.structure_map[(self.structure_map['BOS'] == -1) | (self.structure_map['CHOCH'] == -1)]
         arr = np.zeros(len(self.data))
+        # Mark the broken indices with -1.
         arr[bull_struct['BrokenIndex'].apply(lambda x: int(x))] = 1
         return arr
 
@@ -90,6 +98,7 @@ class SMC:
             DataFrame with HighLow(1 for bull, -1 for bear), Level columns.
         :rtype: pd.DataFrame
         """
+        # Reversing the datapoints for .rolling() method with right to left.
         l = self.data['Low'][::-1].reset_index(drop=True)
         h = self.data['High'][::-1].reset_index(drop=True)
         swing_highs = (h.rolling(window_size, min_periods=1).max() / h == 1.)[::-1]
@@ -98,8 +107,10 @@ class SMC:
         swing_highs.reset_index(drop=True, inplace=True)
         swing_lows.reset_index(drop=True, inplace=True)
 
+        # Mark swing highs as 1 and swing lows as -1.
         swings = np.where((swing_highs | swing_lows), np.where(swing_highs, 1, -1), 0)
 
+        # Filtering only one swing high between two swing lows and vice-versa.
         state = 1
         for i in range(1, swings.shape[0]):
             if swings[i] == state or swings[i] == 0:
@@ -107,11 +118,13 @@ class SMC:
             else:
                 state *= -1
 
+        # Replace 0 with NaN.
         swing_highs_lows = np.where(swings==0, np.nan, swings)
 
         # Get positions of swing_highs_lows where elements are not np.nan
         pos = np.where(~np.isnan(swing_highs_lows))[0]
 
+        # Set first position and last position of swing_highs_lows.
         if len(pos) > 0:
             if swing_highs_lows[pos[0]] == 1:
                 swing_highs_lows[0] = -1
@@ -560,12 +573,6 @@ class SMC:
         if structure:
             struct = self.structure_map
             struct.dropna(subset=['Level'], inplace=True)
-            # for i in range(len(struct)):
-            #     fig.add_shape(type="line",
-            #         x0=self.data['Date'].iloc[struct.index[i]], x1=self.data['Date'].iloc[int(struct['BrokenIndex'].iloc[i])],
-            #         y0=struct['Level'].iloc[i], y1=struct['Level'].iloc[i],
-            #         label=dict(text="BOS" if np.isnan(struct['CHOCH'].iloc[i]) else "CHOCH"),
-            #     )
 
             for i in range(len(struct)):
                 x0 = self.data['Date'].iloc[struct.index[i]]
@@ -585,7 +592,6 @@ class SMC:
                     name=label,  # Legend entry for this line
                     showlegend=False
                 ))
-                # print(type(struct['CHOCH'].iloc[i]))
 
         fig.update_layout(xaxis_rangeslider_visible=False)
         if show:
@@ -602,9 +608,6 @@ def EMA(array, n):
     :rtype: pd.Series
     """
     return pd.Series(array).ewm(span=n, adjust=False).mean()
-
-def swing(data, length):
-    pass
 
 if __name__ == "__main__":
     from data_fetcher import fetch

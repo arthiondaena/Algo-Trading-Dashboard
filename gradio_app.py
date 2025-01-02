@@ -7,10 +7,11 @@ import pandas as pd
 symbols = pd.read_csv('data/Ticker_List_NSE_India.csv')
 
 def run(stock, strategy, swing_hl, ema1, ema2, cross_close):
+    # Downloading ticker data.
     ticker =  symbols[symbols['NAME OF COMPANY'] == stock]['YahooEquiv'].values[0]
     data = fetch(ticker, period='1mo', interval='15m')
 
-    # smc_plot_backtest(data, 'test.html', swing_hl)
+    # Plotting signal plot based on strategy.
     if strategy == "Order Block" or strategy == "Order Block with EMA":
         signal_plot = (SMC(data=data, swing_hl_window_sz=swing_hl).
                        plot(order_blocks=True, swing_hl=True, show=False).
@@ -22,12 +23,12 @@ def run(stock, strategy, swing_hl, ema1, ema2, cross_close):
 
     backtest_plot = gr.Plot()
 
+
+    # Plotting backtest plot based on strategy.
     if strategy == "Order Block":
         backtest_plot = smc_plot_backtest(data, 'test.html', swing_hl)
-
     if strategy == "Order Block with EMA":
         backtest_plot = smc_ema_plot_backtest(data, 'test.html', ema1, ema2, cross_close)
-
     if strategy == "Structure trading":
         backtest_plot = smc_structure_backtest(data, 'test.html', swing_hl)
 

@@ -10,6 +10,7 @@ class SMC_test(Strategy):
     def init(self):
         super().init()
 
+        # Setting smc buy and sell indicators.
         self.smc_b = self.I(self.smc_buy, data=self.data.df, swing_hl=self.swing_hl)
         self.smc_s = self.I(self.smc_sell, data=self.data.df, swing_hl=self.swing_hl)
 
@@ -17,8 +18,10 @@ class SMC_test(Strategy):
         price = self.data.Close[-1]
         current_time = self.data.index[-1]
 
+        # If buy signal, set target 5% above price and stoploss 5% below price.
         if self.smc_b[-1] == 1:
             self.buy(sl=.95 * price, tp=1.05 * price)
+        # If sell signal, set targe 5% below price and stoploss 5% above price.
         if self.smc_s[-1] == -1:
             self.sell(tp=.95 * price, sl=1.05 * price)
 
@@ -46,11 +49,13 @@ class SMC_ema(SignalStrategy, TrailingStrategy):
     def init(self):
         super().init()
 
+        # Setting smc buy and sell indicators.
         self.smc_b = self.I(self.smc_buy, self.data.df)
         self.smc_s = self.I(self.smc_sell, self.data.df)
 
         close = self.data.Close
 
+        # Setting up EMAs.
         self.ma1 = self.I(EMA, close, self.ema1)
         self.ma2 = self.I(EMA, close, self.ema2)
 
@@ -59,8 +64,10 @@ class SMC_ema(SignalStrategy, TrailingStrategy):
         price = self.data.Close[-1]
         current_time = self.data.index[-1]
 
+        # If buy signal and short moving average is above long moving average.
         if self.smc_b[-1] == 1 and self.ma1 > self.ma2:
             self.buy(sl=.95 * price, tp=1.05 * price)
+        # If sell signal and short moving average is below long moving average.
         if self.smc_s[-1] == -1 and self.ma1 < self.ma2:
             self.sell(tp=.95 * price, sl=1.05 * price)
 
@@ -106,9 +113,9 @@ class SMCStructure(TrailingStrategy):
             nearest = self.nearest_swing(self.data.df, self.swing_window)
             target = price + ((price - nearest)* .414)
             stoploss = price - (target-price)
-            print(f"buy: {current_time}, {price}, {nearest}, {target}, {stoploss}")
+            # print(f"buy: {current_time}, {price}, {nearest}, {target}, {stoploss}")
             try:
-                print(self.buy(sl=stoploss, tp=target))
+                self.buy(sl=stoploss, tp=target)
             except:
                 print('Buying failed')
         if self.smc_s[-1] == 1:
@@ -117,13 +124,11 @@ class SMCStructure(TrailingStrategy):
             if nearest > price:
                 target = price - ((nearest - price) * .414)
                 stoploss = price + (price - target)
-                print(f"sell: {current_time}, {price}, {nearest}, {target}, {stoploss}")
+                # print(f"sell: {current_time}, {price}, {nearest}, {target}, {stoploss}")
                 try:
                     self.sell(sl=stoploss, tp=target, limit=float(price))
                 except:
                     print("Selling failed")
-        # if self.smc_s[-1] == -1:
-        #     self.sell(tp=.95 * price, sl=1.05 * price)
 
         # Additionally, set aggressive stop-loss on trades that have been open
         # for more than two days
@@ -141,13 +146,10 @@ class SMCStructure(TrailingStrategy):
         return SMC(data, swing_hl).backtest_sell_signal_structure()
 
     def nearest_swing(self, data, swing_hl):
+        # Get swing high/low nearest to current price.
         swings = SMC(data, swing_hl).swing_hl
         swings = swings[~np.isnan(swings['Level'])]
         return swings['Level'].iloc[-2]
-        # print(swings[~np.isnan(swings['Level'])])
-        # nearest = np.where(~np.isnan(swings['HighLow']))[0]
-        # print(nearest)
-        # return nearest[-1]
 
 
 def smc_plot_backtest(data, filename, swing_hl, **kwargs):
