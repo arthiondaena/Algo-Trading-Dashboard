@@ -7,8 +7,9 @@ class SMC:
     def __init__(self, data, swing_hl_window_sz=10):
         """
         Smart Money Concept
-        :param data: {pd.DataFrame}
+        :param data:
             Should contain Open, High, Low, Close columns and 'Date' as index
+        :type data: pd.DataFrame
         :param swing_hl_window_sz: {int}
             CHoCH Detection Period
         """
@@ -19,19 +20,60 @@ class SMC:
         self.swing_hl = self.swing_highs_lows_v2(self.swing_hl_window_sz)
         self.structure_map = self.bos_choch(self.swing_hl)
 
-    def backtest_buy_signal(self):
+    def backtest_buy_signal_ob(self):
+        """
+        :return:
+            Getting buy signals from order blocks mitigation index
+        :rtype: np.ndarray
+        """
         bull_ob = self.order_blocks[(self.order_blocks['OB']==1) & (self.order_blocks['MitigatedIndex']!=0)]
         arr = np.zeros(len(self.data))
         arr[bull_ob['MitigatedIndex'].apply(lambda x: int(x))] = 1
         return arr
 
-    def backtest_sell_signal(self):
+    def backtest_sell_signal_ob(self):
+        """
+        :return:
+            Getting sell signals from order blocks mitigation index
+        :rtype: np.ndarray
+        """
         bear_ob = self.order_blocks[(self.order_blocks['OB'] == -1) & (self.order_blocks['MitigatedIndex'] != 0)]
         arr = np.zeros(len(self.data))
         arr[bear_ob['MitigatedIndex'].apply(lambda x: int(x))] = -1
         return arr
 
+    def backtest_buy_signal_structure(self):
+        """
+        :return:
+            Getting buy signals from bullish structure broken index
+        :rtype: np.ndarray
+        """
+        bull_struct = self.structure_map[(self.structure_map['BOS'] == 1) | (self.structure_map['CHOCH'] == 1)]
+        arr = np.zeros(len(self.data))
+        arr[bull_struct['BrokenIndex'].apply(lambda x: int(x))] = 1
+        return arr
+
+    def backtest_sell_signal_structure(self):
+        """
+        :return:
+            Getting buy signals from bullish structure broken index
+        :rtype: np.ndarray
+        """
+        bull_struct = self.structure_map[(self.structure_map['BOS'] == -1) | (self.structure_map['CHOCH'] == -1)]
+        arr = np.zeros(len(self.data))
+        arr[bull_struct['BrokenIndex'].apply(lambda x: int(x))] = 1
+        return arr
+
     def swing_highs_lows(self, window_size):
+        """
+        Basic version of swing highs and lows. Suitable for finding swing order blocks.
+        :param window_size:
+            Window size for searching swing highs and lows
+        :type window_size: int
+        :return:
+            DataFrame with Date, highs(bool), lows(bool) columns
+        :rtype: pd.DataFrame
+        """
         l = self.data['Low'].reset_index(drop=True)
         h = self.data['High'].reset_index(drop=True)
         swing_highs = (h.rolling(window_size, center=True).max() / h == 1.)
@@ -39,49 +81,24 @@ class SMC:
         return pd.DataFrame({'Date':self.data.index.to_series(), 'highs':swing_highs.values, 'lows':swing_lows.values})
 
     def swing_highs_lows_v2(self, window_size):
+        """
+        Updated version of swing_highs_lows function. Suitable for BOS and CHoCH.
+        :param window_size:
+            Window size for searching swing highs and lows.
+        :type window_size: int
+        :return:
+            DataFrame with HighLow(1 for bull, -1 for bear), Level columns.
+        :rtype: pd.DataFrame
+        """
         l = self.data['Low'][::-1].reset_index(drop=True)
         h = self.data['High'][::-1].reset_index(drop=True)
-        # print(h)
         swing_highs = (h.rolling(window_size, min_periods=1).max() / h == 1.)[::-1]
         swing_lows = (l.rolling(window_size, min_periods=1).min() / l == 1.)[::-1]
-        roll = h.rolling(window_size).max()
 
-        for i in range(len(l)):
-            print(data['Date'][i], round(h[i], 2), roll[i])
-
-        # roll = h.rolling(window_size).max()[::-1]
-        # print(roll)
-        n = len(l)
-        roll.reset_index(drop=True, inplace=True)
         swing_highs.reset_index(drop=True, inplace=True)
         swing_lows.reset_index(drop=True, inplace=True)
-
-        # for i in range(len(l)):
-        #     print(data['Date'][i], round(h[n-i-1], 2), roll[i], swing_highs[i])
-
-
-        # for i in range(len(l)):
-        #     print(data['Date'][i], round(h[n-i-1], 2), swing_highs[i])
-
-        # l = self.data['Low'].reset_index(drop=True)
-        # h = self.data['High'].reset_index(drop=True)
-        # swing_highs = (h.rolling(window_size).max() / h == 1.)
-        # swing_lows = (l.rolling(window_size).min() / l == 1.)
 
         swings = np.where((swing_highs | swing_lows), np.where(swing_highs, 1, -1), 0)
-
-        # print(swings)
-
-        swing_highs.reset_index(drop=True, inplace=True)
-        swing_lows.reset_index(drop=True, inplace=True)
-
-        # state = 1
-        # n = swings.shape[0]
-        # for i in range(1, swings.shape[0]):
-        #     if swings[n-i] == state or swings[n-i]==0:
-        #         swings[n-i] = 0
-        #     else:
-        #         state *= -1
 
         state = 1
         for i in range(1, swings.shape[0]):
@@ -90,102 +107,9 @@ class SMC:
             else:
                 state *= -1
 
-        # print(swings)
-
-        # print(swing_highs)
-        # # print(swing_highs.to_numpy())
-        # # swing_highs = swing_highs.to_numpy()
-        #
-        # swing_highs = np.where((swing_highs == True) and (swing_highs.shift(1) == True), False, True)
-        #
-        # print(pd.Series(swing_highs)[swing_highs==True])
-
-        # print(pd.DataFrame({'A':swing_highs.values, 'B':swing_highs.shift(1, fill_value=False).values, 'C':swing_highs & ~(swing_highs.shift(1, fill_value=False))}).to_string())
-
-        # swing_highs = swing_highs & ~(swing_highs.shift(1, fill_value=False))
-        # swing_lows = swing_lows & ~(swing_lows.shift(1, fill_value=False))
-
-        # swing_highs = pd.Series(np.where(swings==1, True, False))
-        # swing_lows = pd.Series(np.where(swings==-1, True, False))
-
         swing_highs_lows = np.where(swings==0, np.nan, swings)
 
-        pos = np.where(~np.isnan(swing_highs_lows))[0]
-
-        if len(pos) > 0:
-            if swing_highs_lows[pos[0]] == 1:
-                swing_highs_lows[0] = -1
-            if swing_highs_lows[pos[0]] == -1:
-                swing_highs_lows[0] = 1
-            if swing_highs_lows[pos[-1]] == -1:
-                swing_highs_lows[-1] = 1
-            if swing_highs_lows[pos[-1]] == 1:
-                swing_highs_lows[-1] = -1
-
-        level = np.where(
-            ~np.isnan(swing_highs_lows),
-            np.where(swing_highs_lows == 1, self.data.High, self.data.Low),
-            np.nan,
-        )
-
-        return pd.concat(
-            [
-                pd.Series(swing_highs_lows, name="HighLow"),
-                pd.Series(level, name="Level"),
-            ],
-            axis=1,
-        )
-
-        # for i in range(len(swing_highs)):
-        #     print(f"{swing_highs.iloc[i]}, {swing_lows.iloc[i]}")
-
-        # print(swing_highs[swing_highs==True])
-        # return pd.DataFrame(
-        #     {'Date': self.data.index.to_series(), 'highs': swing_highs.values, 'lows': swing_lows.values})
-
-    def swing_highs_lows_v3(self, window_size):
-        swing_highs_lows = np.where(
-            self.data.High
-            == self.data.High.rolling(window_size, center=True).max(),
-            1,
-            np.where(
-                self.data.Low
-                == self.data.Low.rolling(window_size, center=True).max(),
-                -1,
-                np.nan
-            )
-        )
-
-        while True:
-            pos = np.where(~np.isnan(swing_highs_lows))[0]
-
-            if len(pos) < 2:
-                break
-
-            curr = swing_highs_lows[pos[:-1]]
-            next = swing_highs_lows[pos[1:]]
-
-            highs = self.data.High.iloc[pos[:-1]].values
-            lows = self.data.Low.iloc[pos[:-1]].values
-
-            next_highs = self.data.High.iloc[pos[1:]].values
-            next_lows = self.data.Low.iloc[pos[1:]].values
-
-            index_to_remove = np.zeros(len(pos), dtype=bool)
-
-            consecutive_highs = (curr == 1) & (next == 1)
-            index_to_remove[:-1] |= consecutive_highs & (highs < next_highs)
-            index_to_remove[1:] |= consecutive_highs & (highs >= next_highs)
-
-            consecutive_lows = (curr == -1) & (next == -1)
-            index_to_remove[:-1] |= consecutive_lows & (lows > next_lows)
-            index_to_remove[1:] |= consecutive_lows & (lows <= next_lows)
-
-            if not index_to_remove.any():
-                break
-
-            swing_highs_lows[pos[index_to_remove]] = np.nan
-
+        # Get positions of swing_highs_lows where elements are not np.nan
         pos = np.where(~np.isnan(swing_highs_lows))[0]
 
         if len(pos) > 0:
@@ -213,6 +137,15 @@ class SMC:
         )
 
     def bos_choch(self, swing_highs_lows):
+        """
+        Break of Structure and Change of Character
+        :param swing_highs_lows: A DataFrame which contains swing highs and lows.
+            Format should be same as swing_highs_lows_v2() function.
+        :type swing_highs_lows: pd.DataFrame
+        :return: A DataFrame with BOS(1 for bear, -1 for bull),
+            CHOCH(1 for bear, -1 for bull), Level, BrokenIndex as columns.
+        :rtype: pd.DataFrame
+        """
         level_order = []
         highs_lows_order = []
 
@@ -377,78 +310,18 @@ class SMC:
 
         return pd.concat([bos, choch, level, broken], axis=1)
 
-    def structure(self, length=50, sLength=3):
-        n = self.data.shape[0]
-
-        # Global variables for structure
-        os = [0]*n
-        topy, btmy = None, None
-        top_crossed, btm_crossed = False, False
-        stop_crossed, sbtm_crossed = False, False
-
-        # Swings detection / measurements
-        def swings(curr, length):
-            topx, btmx = None, None
-            top, btm = None, None
-
-            upper = self.data.High.iloc[curr-length+1:curr+1].max()
-            lower = self.data.Low.iloc[curr-length+1:curr+1].min()
-
-            if self.data.High.iloc[curr-length] > upper:
-                os[curr] = 0
-            elif self.data.Low.iloc[curr-length] < lower:
-                os[curr] = 1
-            else:
-                os[curr] = os[curr-1]
-
-            if os[curr] == 0 and os[curr-1] != 0:
-                top = self.data.High.iloc[curr-length]
-                topx = curr
-            if os[curr] == 1 and os[curr-1] != 1:
-                btm = self.data.Low.iloc[curr-length]
-                btmx = curr
-
-            return [top, topx, btm, btmx]
-
-        for i in range(length, self.data.shape[0]):
-            # Getting len and slen swings
-            top, topx, btm, btmx = swings(i, length)
-            stop, stopx, sbtm, sbtmx = swings(sLength)
-
-            # CHoCH Detection
-            if top:
-                topy = top
-                top_crossed = False
-
-            if btm:
-                btmy = btm
-                btm_crossed = False
-
-            # Test for CHoCH
-            if self.data.Close > topy and not top_crossed:
-                os[i] = 1
-                top_crossed = True
-
-            if self.data.Close < btmy and not btm_crossed:
-                os[i] = 0
-                btm_crossed = True
-
-            # print(n)
-
-
     def fvg(self):
         """
         FVG - Fair Value Gap
         A fair value gap is when the previous high is lower than the next low if the current candle is bullish.
         Or when the previous low is higher than the next high if the current candle is bearish.
 
-        parameters:
-
-        returns:
+        :return:\
         FVG = 1 if bullish fair value gap, -1 if bearish fair value gap
         Top = the top of the fair value gap
         Bottom = the bottom of the fair value gap
         MitigatedIndex = the index of the candle that mitigated the fair value gap
+        :rtype: pd.DataFrame
         """
 
         fvg = np.where(
@@ -508,6 +381,17 @@ class SMC:
         )
 
     def order_block(self, imb_perc=.1, join_consecutive=True):
+        """
+        OB - Order Block
+        Order block is the presence of a chunk of market orders that results in a sudden rise or fall in the market
+
+        :return:\
+        OB = 1 if bullish order block, -1 if bearish order block
+        Top = the top of the order block
+        Bottom = the bottom of the order block
+        MitigatedIndex = the index of the candle that mitigated the order block
+        :rtype: pd.DataFrame
+        """
         hl = self.swing_highs_lows(self.swing_hl_window_sz)
 
         ob = np.where(
@@ -575,7 +459,15 @@ class SMC:
             axis=1,
         ).dropna(subset=['OB'])
 
-    def plot(self, order_blocks=True, swing_hl=True, swing_hl_v2=False, structure=True, show=True):
+    def plot(self, order_blocks=False, swing_hl=False, swing_hl_v2=False, structure=False, show=True):
+        """
+        :param order_blocks:
+        :param swing_hl:
+        :param swing_hl_v2:
+        :param structure:
+        :param show:
+        :return:
+        """
         fig = make_subplots(1, 1)
 
         # plot the candle stick graph
@@ -668,13 +560,32 @@ class SMC:
         if structure:
             struct = self.structure_map
             struct.dropna(subset=['Level'], inplace=True)
+            # for i in range(len(struct)):
+            #     fig.add_shape(type="line",
+            #         x0=self.data['Date'].iloc[struct.index[i]], x1=self.data['Date'].iloc[int(struct['BrokenIndex'].iloc[i])],
+            #         y0=struct['Level'].iloc[i], y1=struct['Level'].iloc[i],
+            #         label=dict(text="BOS" if np.isnan(struct['CHOCH'].iloc[i]) else "CHOCH"),
+            #     )
+
             for i in range(len(struct)):
-                fig.add_shape(type="line",
-                    x0=self.data['Date'].iloc[struct.index[i]], x1=self.data['Date'].iloc[int(struct['BrokenIndex'].iloc[i])],
-                    y0=struct['Level'].iloc[i], y1=struct['Level'].iloc[i],
-                    label=dict(text="BOS" if np.isnan(struct['CHOCH'].iloc[i]) else "CHOCH")
-                )
-                print(type(struct['CHOCH'].iloc[i]))
+                x0 = self.data['Date'].iloc[struct.index[i]]
+                x1 = self.data['Date'].iloc[int(struct['BrokenIndex'].iloc[i])]
+                y = struct['Level'].iloc[i]
+                label = "BOS" if np.isnan(struct['CHOCH'].iloc[i]) else "CHOCH"
+                direction = struct[label].iloc[i]
+
+                # Add scatter trace for the line
+                fig.add_trace(go.Scatter(
+                    x=[x0, x1],  # x-coordinates of the line
+                    y=[y, y],  # y-coordinates of the line
+                    mode="lines+text",  # Line and optional label
+                    line=dict(color="blue" if label=="BOS" else "orange"),  # Customize line color
+                    text=[None, label],  # Add label only at one end
+                    textposition="top left" if direction==1 else "bottom left",  # Adjust label position
+                    name=label,  # Legend entry for this line
+                    showlegend=False
+                ))
+                # print(type(struct['CHOCH'].iloc[i]))
 
         fig.update_layout(xaxis_rangeslider_visible=False)
         if show:
@@ -683,6 +594,13 @@ class SMC:
 
 
 def EMA(array, n):
+    """
+    :param array: price of the stock
+    :param n: window size
+    :type n: int
+    :return: Exponential moving average
+    :rtype: pd.Series
+    """
     return pd.Series(array).ewm(span=n, adjust=False).mean()
 
 def swing(data, length):
@@ -691,13 +609,18 @@ def swing(data, length):
 if __name__ == "__main__":
     from data_fetcher import fetch
     data = fetch('ICICIBANK.NS', period='1mo', interval='15m')
-    # data = fetch('RELIANCE.NS', period='1mo', interval='15m')
+    data = fetch('RELIANCE.NS', period='1mo', interval='15m')
     data['Date'] = data.index.to_series()
     filter = pd.to_datetime('2024-12-17 09:50:00.0000000011',
                format='%Y-%m-%d %H:%M:%S.%f')
-    data = data[data['Date']<filter]
+    # data = data[data['Date']<filter]
     # print(SMC(data).backtest_buy_signal())
     # print(SMC(data).swing_highs_lows_v3(10).to_string())
     # print(data.tail())
-    SMC(data).plot(order_blocks=False, swing_hl=False, swing_hl_v2=True, show=True)
+    SMC(data).plot(order_blocks=False, swing_hl=False, swing_hl_v2=True, structure=True, show=True)
+    # struct = SMC(data).structure_map
+    # print(struct)
+    #
+    # for i in range(len(data)):
+    #     print(i, data['Date'][i], struct['BrokenIndex'].iloc[i])
     # SMC(data).structure()
