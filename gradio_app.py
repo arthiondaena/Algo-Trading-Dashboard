@@ -6,7 +6,7 @@ import pandas as pd
 
 symbols = pd.read_csv('data/Ticker_List_NSE_India.csv')
 
-def run(stock, strategy, swing_hl, ema1, ema2, cross_close):
+def run(stock, strategy, swing_hl, ema1=9, ema2=21, cross_close=False):
     # Downloading ticker data.
     ticker =  symbols[symbols['NAME OF COMPANY'] == stock]['YahooEquiv'].values[0]
     data = fetch(ticker, period='1mo', interval='15m')
@@ -63,6 +63,16 @@ with gr.Blocks(fill_width=True) as app:
             run,
             inputs=input,
             outputs=[signal_plot, backtest_plot]
+        )
+
+        examples = gr.Examples(
+            examples=[
+                ["Reliance Industries Limited", "Order Block", 10],
+                ["Reliance Industries Limited", "Order Block with EMA", 10],
+                ["Reliance Industries Limited", "Structure trading", 20],
+            ],
+            example_labels=['Order Block', 'Order Block with EMA', 'Structure trading'],
+            inputs=[stock, strategy, swing_hl]
         )
 
     btn = gr.Button("Run")
