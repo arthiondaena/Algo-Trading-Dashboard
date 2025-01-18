@@ -1,7 +1,6 @@
 from backtesting import Backtest, Strategy
 from backtesting.lib import SignalStrategy, TrailingStrategy
 from indicators import SMC, EMA
-from data_fetcher import fetch
 import pandas as pd
 import numpy as np
 
@@ -152,28 +151,14 @@ class SMCStructure(TrailingStrategy):
         return swings['Level'].iloc[-2]
 
 
-def smc_plot_backtest(data, filename, swing_hl, **kwargs):
-    bt = Backtest(data, SMC_test, **kwargs)
-    bt.run(swing_hl=swing_hl)
-    return bt.plot(filename=filename, open_browser=False)
-
-def smc_ema_plot_backtest(data, filename, ema1, ema2, closecross, **kwargs):
-    bt = Backtest(data, SMC_ema, **kwargs)
-    bt.run(ema1=ema1, ema2=ema2, close_on_crossover=closecross)
-    return bt.plot(filename=filename, open_browser=False)
-
-def smc_structure_backtest(data, filename, swing_hl, **kwargs):
-    bt = Backtest(data, SMCStructure, **kwargs)
-    bt.run(swing_window=swing_hl)
-    return bt.plot(filename=filename, open_browser=False)
-
 if __name__ == "__main__":
+    from utils import fetch
     # data = fetch('ICICIBANK.NS', period='1mo', interval='15m')
     data = fetch('RELIANCE.NS', period='1mo', interval='15m')
     # data = fetch('AXISBANK.NS', period='1mo', interval='15m')
     # bt = Backtest(data, SMC_ema, commission=.002)
     # bt.run(ema1 = 9, ema2 = 21, close_on_crossover=True)
     bt = Backtest(data, SMCStructure, commission = .002, trade_on_close=True)
-    bt.run()
+    print(bt.run())
 
-    bt.plot()
+    # bt.plot()

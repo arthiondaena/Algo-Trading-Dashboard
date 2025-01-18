@@ -504,8 +504,8 @@ class SMC:
         fig.update_xaxes(rangebreaks=[dict(dvalue=5 * 60 * 1000, values=dt_breaks)])
 
         if order_blocks:
-            print(self.order_blocks.head())
-            print(self.order_blocks.index.to_list())
+            # print(self.order_blocks.head())
+            # print(self.order_blocks.index.to_list())
 
             ob_df = self.data.iloc[self.order_blocks.index.to_list()]
             # print(ob_df)
@@ -610,7 +610,8 @@ def EMA(array, n):
     return pd.Series(array).ewm(span=n, adjust=False).mean()
 
 if __name__ == "__main__":
-    from data_fetcher import fetch
+    from utils import fetch
+
     data = fetch('ICICIBANK.NS', period='1mo', interval='15m')
     data = fetch('RELIANCE.NS', period='1mo', interval='15m')
     data['Date'] = data.index.to_series()
