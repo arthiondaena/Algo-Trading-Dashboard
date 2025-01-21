@@ -13,7 +13,7 @@ jobs:
       uses: nateraw/huggingface-sync-action@v0.0.4
       with:
         github_repo_id: arthiondaena/backtesting
-        huggingface_repo_id: Invicto69/Algorithmic_Trading_Dashboard
+        huggingface_repo_id: Invicto69/Algo_Trading_Dashboard
         repo_type: space
         space_sdk: gradio
         private: false
