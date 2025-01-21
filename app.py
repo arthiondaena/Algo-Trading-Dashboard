@@ -45,7 +45,7 @@ with gr.Blocks(fill_width=True) as app:
         interval = gr.Dropdown(limits['interval'].tolist(), label='Select Interval', value=None)
 
         period_list = ['1d', '5d', '1mo', '3mo', '6mo', '1y', '2y', '5y', '10y', 'ytd', 'max']
-        period = gr.Dropdown(label = 'Select Period', choices=[])
+        period = gr.Dropdown(label = 'Select Period', choices=["max"], value="max")
 
         # Updating period based on interval
         def update_period(interval):
