@@ -150,6 +150,7 @@ class SMCStructure(TrailingStrategy):
         swings = swings[~np.isnan(swings['Level'])]
         return swings['Level'].iloc[-2]
 
+strategies = {'Order Block': SMC_test, 'Order Block with EMA': SMC_ema , 'Structure trading': SMCStructure}
 
 if __name__ == "__main__":
     from utils import fetch

@@ -23,7 +23,6 @@ def run(stock, interval, period, strategy, swing_hl, ema1=9, ema2=21, cross_clos
 
     backtest_plot = gr.Plot()
 
-
     # Plotting backtest plot based on strategy.
     if strategy == "Order Block":
         backtest_plot = smc_plot_backtest(data, 'test.html', swing_hl)
