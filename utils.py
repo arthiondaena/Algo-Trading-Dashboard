@@ -14,21 +14,6 @@ def fetch(symbol, period, interval):
     df.columns =df.columns.get_level_values(0)
     return df
 
-def smc_plot_backtest(data, filename, swing_hl, **kwargs):
-    bt = Backtest(data, SMC_test, **kwargs)
-    bt.run(swing_window=swing_hl)
-    return bt.plot(filename=filename, open_browser=False)
-
-def smc_ema_plot_backtest(data, filename, ema1, ema2, closecross, **kwargs):
-    bt = Backtest(data, SMC_ema, **kwargs)
-    bt.run(ema1=ema1, ema2=ema2, close_on_crossover=closecross)
-    return bt.plot(filename=filename, open_browser=False)
-
-def smc_structure_plot_backtest(data, filename, swing_hl, **kwargs):
-    bt = Backtest(data, SMCStructure, **kwargs)
-    bt.run(swing_window=swing_hl)
-    return bt.plot(filename=filename, open_browser=False)
-
 def smc_backtest(data, filename, swing_hl, **kwargs):
     bt = Backtest(data, SMC_test, **kwargs)
     results = bt.run(swing_window=swing_hl)
@@ -47,7 +32,7 @@ def smc_structure_backtest(data, filename, swing_hl, **kwargs):
     bt.plot(filename=filename, open_browser=False)
     return results
 
-def run_strategy(ticker_symbol, strategy, period, interval, kwargs):
+def run_strategy(ticker_symbol, strategy, period, interval, **kwargs):
     # Fetching ohlc of random ticker_symbol.
     retries = 3
     for i in range(retries):
@@ -87,8 +72,6 @@ def run_strategy(ticker_symbol, strategy, period, interval, kwargs):
     backtest_results['plot'] = plot
 
     # Reordering columns.
-    # cols = df.columns.tolist()
-    # cols = cols[-1:] + cols[:-1]
     cols = ['stock', 'Start', 'End', 'Return [%]', 'Equity Final [$]', 'Buy & Hold Return [%]', '# Trades',
             'Win Rate [%]', 'Best Trade [%]', 'Worst Trade [%]', 'Avg. Trade [%]', 'plot']
     backtest_results = backtest_results[cols]

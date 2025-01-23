@@ -61,13 +61,22 @@ def complete_backtest():
         st.success(f"Analysis finished in {round(time.time()-start, 2)} seconds")
 
     if "results" in st.session_state:
-        st.write("⬇️ Select a row in index column to get detailed information of the respective stock run.")
+        # st.write("⬇️ Select a row in index column to get detailed information of the respective stock run.")
+        st.markdown(f"""
+                    ### :orange[Nifty50 stocks backtest result by using {strategy}]
+                     ⬇️ Select a row in index column to get detailed information of the respective stock run.
+                    """)
         cols = ['stock', 'Start', 'End', 'Return [%]', 'Equity Final [$]', 'Buy & Hold Return [%]', '# Trades', 'Win Rate [%]', 'Best Trade [%]', 'Worst Trade [%]', 'Avg. Trade [%]']
         df = st.dataframe(st.session_state.results, hide_index=True, column_order=cols, on_select="rerun", selection_mode="single-row")
         df.selection.rows = 1
         if df.selection.rows:
             row = df.selection.rows
+            ticker = st.session_state.results['stock'].values[row]
             plot = st.session_state.results['plot'].values[row]
+            color = "green" if st.session_state.results['Return [%]'].values[row][0] > 0 else "red"
+            st.markdown(f"""
+            ### :{color}[{ticker[0]} backtest plot] 📊
+            """)
             components.html(plot[0], height=1067)
 
 complete_backtest()

@@ -7,7 +7,7 @@ from bokeh.plotting import figure
 from streamlit.components import v1 as components
 
 from indicators import SMC
-from utils import fetch, smc_plot_backtest, smc_ema_plot_backtest, smc_structure_plot_backtest
+from utils import fetch, run_strategy
 
 def use_file_for_bokeh(chart: figure, chart_height=1067):
     # Function used to replace st.boken_chart, because streamlit doesn't support bokeh v3
@@ -73,6 +73,8 @@ def algorithmic_trading_dashboard():
             ema2 = st.number_input("Slow EMA Length", min_value=1, value=21)
         with c3:
             cross_close = st.checkbox("Close trade on EMA crossover", value=False)
+    else:
+        ema1, ema2, cross_close = None, None, None
 
     # Button to run the analysis
     if st.button("Run"):
@@ -95,18 +97,26 @@ def algorithmic_trading_dashboard():
             )
 
         # Generate backtest plot
-        if strategy == "Order Block":
-            backtest_plot = smc_plot_backtest(data, 'test.html', swing_hl)
-        elif strategy == "Order Block with EMA":
-            backtest_plot = smc_ema_plot_backtest(data, 'test.html', ema1, ema2, cross_close)
-        elif strategy == "Structure trading":
-            backtest_plot = smc_structure_plot_backtest(data, 'test.html', swing_hl)
+        # if strategy == "Order Block":
+        #     backtest_plot = smc_plot_backtest(data, 'test.html', swing_hl)
+        # elif strategy == "Order Block with EMA":
+        #     backtest_plot = smc_ema_plot_backtest(data, 'test.html', ema1, ema2, cross_close)
+        # elif strategy == "Structure trading":
+        #     backtest_plot = smc_structure_plot_backtest(data, 'test.html', swing_hl)
+
+        backtest_results = run_strategy(ticker, strategy, period, interval, swing_hl=swing_hl, ema1=ema1, ema2=ema2, cross_close=cross_close)
 
         # Display plots
         st.write("### Signal Plot")
         st.plotly_chart(signal_plot, width=1200)
 
-        st.write("### Backtesting Plot")
-        st.bokeh_chart(backtest_plot)
+        st.write('### Backtest Results')
+        cols = ['stock', 'Start', 'End', 'Return [%]', 'Equity Final [$]', 'Buy & Hold Return [%]', '# Trades',
+                'Win Rate [%]', 'Best Trade [%]', 'Worst Trade [%]', 'Avg. Trade [%]']
+        st.dataframe(backtest_results, hide_index=True, column_order=cols)
+
+        st.write("### Backtest Plot")
+        plot = backtest_results['plot']
+        components.html(plot[0], height=1067)
 
 algorithmic_trading_dashboard()
