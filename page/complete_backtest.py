@@ -15,6 +15,8 @@ def complete_backtest():
         """
     )
 
+    st.info("Strategy runs on most of the Nifty50 stocks",  icon="ℹ️")
+
     limits = pd.read_csv('data/yahoo_limits.csv')
     period_list = ['1d', '5d', '1mo', '3mo', '6mo', '1y', '2y', '5y', '10y', 'ytd', 'max']
 
@@ -35,7 +37,7 @@ def complete_backtest():
         limit = limits[limits['interval'] == interval]['limit'].values[0]
         idx = period_list.index(limit)
         period_options = period_list[:idx + 1] + ['max']
-        period = st.selectbox("Select Period", period_options, index=3)
+        period = st.selectbox("Select Period", period_options, index=2)
 
     # EMA parameters if "Order Block with EMA" is selected
     if strategy == "Order Block with EMA":
