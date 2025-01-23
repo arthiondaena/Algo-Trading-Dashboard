@@ -96,26 +96,20 @@ def algorithmic_trading_dashboard():
                 .update_layout(title=dict(text=ticker))
             )
 
-        # Generate backtest plot
-        # if strategy == "Order Block":
-        #     backtest_plot = smc_plot_backtest(data, 'test.html', swing_hl)
-        # elif strategy == "Order Block with EMA":
-        #     backtest_plot = smc_ema_plot_backtest(data, 'test.html', ema1, ema2, cross_close)
-        # elif strategy == "Structure trading":
-        #     backtest_plot = smc_structure_plot_backtest(data, 'test.html', swing_hl)
-
         backtest_results = run_strategy(ticker, strategy, period, interval, swing_hl=swing_hl, ema1=ema1, ema2=ema2, cross_close=cross_close)
 
+        color = "green" if backtest_results['Return [%]'].values[0] > 0 else "red"
+
         # Display plots
-        st.write("### Signal Plot")
+        st.write(f"### :{color}[Signal Plot]")
         st.plotly_chart(signal_plot, width=1200)
 
-        st.write('### Backtest Results')
+        st.write(f'### :{color}[Backtest Results]')
         cols = ['stock', 'Start', 'End', 'Return [%]', 'Equity Final [$]', 'Buy & Hold Return [%]', '# Trades',
                 'Win Rate [%]', 'Best Trade [%]', 'Worst Trade [%]', 'Avg. Trade [%]']
         st.dataframe(backtest_results, hide_index=True, column_order=cols)
 
-        st.write("### Backtest Plot")
+        st.write(f"### :{color}[Backtest Plot]")
         plot = backtest_results['plot']
         components.html(plot[0], height=1067)
 

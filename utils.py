@@ -1,12 +1,11 @@
 import yfinance as yf
 from backtesting import Backtest
 import pandas as pd
-import random
 import os
 
 from multiprocessing import Pool
 from itertools import repeat
-import time
+from functools import partial
 from strategies import SMC_test, SMC_ema, SMCStructure
 
 def fetch(symbol, period, interval):
@@ -87,9 +86,9 @@ def complete_test(strategy: str, period: str, interval: str, multiprocess=True, 
 
     if multiprocess:
         with Pool() as p:
-            result = p.starmap(run_strategy, zip(nifty50['YahooEquiv'].values, repeat(strategy), repeat(period), repeat(interval), repeat(kwargs)))
+            result = p.starmap(partial(run_strategy, **kwargs), zip(nifty50['YahooEquiv'].values, repeat(strategy), repeat(period), repeat(interval)))
     else:
-        result = [run_strategy(nifty50['YahooEquiv'].values[i], strategy, period, interval, kwargs) for i in range(len(nifty50))]
+        result = [run_strategy(nifty50['YahooEquiv'].values[i], strategy, period, interval, **kwargs) for i in range(len(nifty50))]
 
     df = pd.concat(result)
 
