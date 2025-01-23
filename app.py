@@ -1,11 +1,15 @@
 import streamlit as st
 
-st.set_page_config(page_title="Algorithmic Trading Dashboard", layout="wide", initial_sidebar_state="auto",
-                       menu_items=None, page_icon=":chart_with_upwards_trend:")
+def app():
+    st.set_page_config(page_title="Algorithmic Trading Dashboard", layout="wide", initial_sidebar_state="auto",
+                           menu_items=None, page_icon=":chart_with_upwards_trend:")
 
-dashboard = st.Page("pages/dashboard.py", title="Dashboard")
-complete_test = st.Page("pages/complete_backtest.py", title="Nifty50 Test")
+    single_test = st.Page("page/single_backtest.py", title="Run Strategy")
+    complete_test = st.Page("page/complete_backtest.py", title="Evaluate Strategy")
 
-pg = st.navigation([dashboard, complete_test])
+    pg = st.navigation({'Algorithmic Trading Dashboard':[single_test, complete_test]})
 
-pg.run()
+    pg.run()
+
+if __name__ == "__main__":
+    app()

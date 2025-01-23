@@ -1,10 +1,19 @@
+import sys
+# sys.path.append(r"D:\code\algotrading\backtesting")
+
 import streamlit as st
 import pandas as pd
+import time
 from streamlit.components import v1 as components
 from utils import complete_test
 
 def complete_backtest():
-    st.title("Evaluate Strategy")
+    st.markdown(
+        """
+        # Algorithmic Trading Dashboard
+        ## Evaluate Strategy
+        """
+    )
 
     limits = pd.read_csv('data/yahoo_limits.csv')
     period_list = ['1d', '5d', '1mo', '3mo', '6mo', '1y', '2y', '5y', '10y', 'ytd', 'max']
@@ -40,13 +49,20 @@ def complete_backtest():
     else:
         ema1, ema2, cross_close = None, None, None
 
+    multiprocess = st.checkbox("Multiprocess", value=True)
+
     # Button to run the analysis
     if st.button("Run"):
-        st.session_state.results = complete_test(strategy, period, interval, swing_hl=swing_hl, ema1=ema1, ema2=ema2, cross_close=cross_close)
+        start = time.time()
+        st.session_state.results = complete_test(strategy, period, interval, multiprocess, swing_hl=swing_hl, ema1=ema1, ema2=ema2, cross_close=cross_close)
+        # st.write(f"Analysis finished in {time.strftime("%Hh%Mm%Ss", time.gmtime(time.time()-start))}")
+        st.success(f"Analysis finished in {round(time.time()-start, 2)} seconds")
 
     if "results" in st.session_state:
+        st.write("⬇️ Select a row in index column to get detailed information of the respective stock run.")
         cols = ['stock', 'Start', 'End', 'Return [%]', 'Equity Final [$]', 'Buy & Hold Return [%]', '# Trades', 'Win Rate [%]', 'Best Trade [%]', 'Worst Trade [%]', 'Avg. Trade [%]']
         df = st.dataframe(st.session_state.results, hide_index=True, column_order=cols, on_select="rerun", selection_mode="single-row")
+        df.selection.rows = 1
         if df.selection.rows:
             row = df.selection.rows
             plot = st.session_state.results['plot'].values[row]
