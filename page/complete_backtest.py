@@ -1,11 +1,9 @@
-import sys
-# sys.path.append(r"D:\code\algotrading\backtesting")
-
 import streamlit as st
 import pandas as pd
 import time
 from streamlit.components import v1 as components
 from utils import complete_test
+from os import cpu_count
 
 def complete_backtest():
     st.markdown(
@@ -51,7 +49,7 @@ def complete_backtest():
     else:
         ema1, ema2, cross_close = None, None, None
 
-    multiprocess = st.checkbox("Multiprocess", value=True)
+    multiprocess = st.checkbox(f"Multiprocess (use {cpu_count()} CPUs)", value=True)
 
     # Button to run the analysis
     if st.button("Run"):
