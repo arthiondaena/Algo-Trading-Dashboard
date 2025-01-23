@@ -12,7 +12,7 @@ def fetch(symbol, period, interval):
 
 def smc_plot_backtest(data, filename, swing_hl, **kwargs):
     bt = Backtest(data, SMC_test, **kwargs)
-    bt.run(swing_hl=swing_hl)
+    bt.run(swing_window=swing_hl)
     return bt.plot(filename=filename, open_browser=False)
 
 def smc_ema_plot_backtest(data, filename, ema1, ema2, closecross, **kwargs):
@@ -26,13 +26,22 @@ def smc_structure_plot_backtest(data, filename, swing_hl, **kwargs):
     return bt.plot(filename=filename, open_browser=False)
 
 def smc_backtest(data, swing_hl, **kwargs):
-    return Backtest(data, SMC_test, **kwargs).run(swing_hl=swing_hl)
+    bt = Backtest(data, SMC_test, **kwargs)
+    results = bt.run(swing_window=swing_hl)
+    bt.plot(filename='bokeh_graph.html', open_browser=False)
+    return results
 
 def smc_ema_backtest(data, ema1, ema2, closecross, **kwargs):
-    return Backtest(data, SMC_ema, **kwargs).run(ema1=ema1, ema2=ema2, close_on_crossover=closecross)
+    bt = Backtest(data, SMC_ema, **kwargs)
+    results = bt.run(ema1=ema1, ema2=ema2, close_on_crossover=closecross)
+    bt.plot(filename='bokeh_graph.html', open_browser=False)
+    return results
 
 def smc_structure_backtest(data, swing_hl, **kwargs):
-    return Backtest(data, SMCStructure, **kwargs).run(swing_hl=swing_hl)
+    bt = Backtest(data, SMCStructure, **kwargs)
+    results = bt.run(swing_window=swing_hl)
+    bt.plot(filename='bokeh_graph.html', open_browser=False)
+    return results
 
 def random_test(strategy: str, period: str, interval: str, no_of_stocks: int = 5, **kwargs):
     nifty50 = pd.read_csv("data/ind_nifty50list.csv")
@@ -59,6 +68,9 @@ def random_test(strategy: str, period: str, interval: str, no_of_stocks: int = 5
             backtest_results = smc_structure_backtest(data, kwargs['swing_hl'])
         else:
             raise Exception('Strategy not found')
+
+        with open("bokeh_graph.html", 'r', encoding='utf-8') as f:
+            plot = f.read()
 
         # Converting pd.Series to pd.Dataframe
         backtest_results = backtest_results.to_frame().transpose()
@@ -87,6 +99,8 @@ def complete_test(strategy: str, period: str, interval: str, **kwargs):
     df = pd.DataFrame()
 
     for i in range(len(nifty50)):
+    # for i in range(5):
+
         # Fetching ohlc of random ticker_symbol.
         ticker_symbol = nifty50['YahooEquiv'].values[i]
         data = fetch(ticker_symbol, period, interval)
@@ -100,19 +114,24 @@ def complete_test(strategy: str, period: str, interval: str, **kwargs):
         else:
             raise Exception('Strategy not found')
 
+        with open("bokeh_graph.html", 'r', encoding='utf-8') as f:
+            plot = f.read()
+
         # Converting pd.Series to pd.Dataframe
         backtest_results = backtest_results.to_frame().transpose()
 
         backtest_results['stock'] = ticker_symbol
+        backtest_results['plot'] = plot
 
         # Reordering columns.
         # cols = df.columns.tolist()
         # cols = cols[-1:] + cols[:-1]
-        cols = ['stock', 'Start', 'End', 'Return [%]', 'Equity Final [$]', 'Buy & Hold Return [%]', '# Trades', 'Win Rate [%]', 'Best Trade [%]', 'Worst Trade [%]', 'Avg. Trade [%]']
+        cols = ['stock', 'Start', 'End', 'Return [%]', 'Equity Final [$]', 'Buy & Hold Return [%]', '# Trades', 'Win Rate [%]', 'Best Trade [%]', 'Worst Trade [%]', 'Avg. Trade [%]', 'plot']
         backtest_results = backtest_results[cols]
 
         df = pd.concat([df, backtest_results])
 
+    df['plot'] = df['plot'].astype(str)
     df = df.sort_values(by=['Return [%]'], ascending=False)
 
     return df
@@ -123,6 +142,6 @@ if __name__ == "__main__":
     # data = fetch('RELIANCE.NS', period='1y', interval='15m')
     # df = yf.download('RELIANCE.NS', period='1yr', interval='15m')
 
-    rt = all_testing("Order Block", '1mo', '15m', swing_hl=20)
+    rt = complete_test("Order Block", '1mo', '15m', swing_hl=20)
     rt.to_excel('test/all_testing_1.xlsx', index=False)
     print(rt)

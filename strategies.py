@@ -5,13 +5,13 @@ import pandas as pd
 import numpy as np
 
 class SMC_test(Strategy):
-    swing_hl = 10
+    swing_window = 10
     def init(self):
         super().init()
 
         # Setting smc buy and sell indicators.
-        self.smc_b = self.I(self.smc_buy, data=self.data.df, swing_hl=self.swing_hl)
-        self.smc_s = self.I(self.smc_sell, data=self.data.df, swing_hl=self.swing_hl)
+        self.smc_b = self.I(self.smc_buy, data=self.data.df, swing_hl=self.swing_window)
+        self.smc_s = self.I(self.smc_sell, data=self.data.df, swing_hl=self.swing_window)
 
     def next(self):
         price = self.data.Close[-1]

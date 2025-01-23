@@ -3,7 +3,7 @@ name: Sync with Hugging Face Hub
 on:
   push:
     branches:
-      - master
+      - streamlit
 
 jobs:
   build:
@@ -13,8 +13,8 @@ jobs:
       uses: nateraw/huggingface-sync-action@v0.0.4
       with:
         github_repo_id: arthiondaena/backtesting
-        huggingface_repo_id: Invicto69/Algo_Trading_Dashboard
+        huggingface_repo_id: Invicto69/Algo_Trading_Dashboard_streamlit
         repo_type: space
-        space_sdk: gradio
+        space_sdk: streamlit
         private: false
         hf_token: ${{ secrets.HF_TOKEN }}
