@@ -1,30 +1,19 @@
 import pandas as pd
 import streamlit as st
-import os
-import random
-from bokeh.io import output_file, save
-from bokeh.plotting import figure
 from streamlit.components import v1 as components
 
 from indicators import SMC
 from utils import fetch, run_strategy
 
-def use_file_for_bokeh(chart: figure, chart_height=1067):
-    # Function used to replace st.boken_chart, because streamlit doesn't support bokeh v3
-    file_name = f'bokeh_graph_{random.getrandbits(8)}.html'
-    output_file(file_name)
-    save(chart)
-    with open(file_name, 'r', encoding='utf-8') as f:
-        html = f.read()
-    os.remove(file_name)
-    components.html(html, height=chart_height)
-
-st.bokeh_chart = use_file_for_bokeh
-
 def algorithmic_trading_dashboard():
-    # Load data
-    symbols = pd.read_csv('data/Ticker_List_NSE_India.csv')
-    limits = pd.read_csv('data/yahoo_limits.csv')
+    @st.cache_data
+    def load_data():
+        # Load data
+        symbols = pd.read_csv('data/Ticker_List_NSE_India.csv')
+        limits = pd.read_csv('data/yahoo_limits.csv')
+        return symbols, limits
+
+    symbols, limits = load_data()
 
     # Dropdown options
     period_list = ['1d', '5d', '1mo', '3mo', '6mo', '1y', '2y', '5y', '10y', 'ytd', 'max']
@@ -62,19 +51,31 @@ def algorithmic_trading_dashboard():
 
     with c2:
         # Swing High/Low window size
-        swing_hl = st.number_input("Swing High/Low Window Size", min_value=1, value=10)
+        swing_hl = st.number_input("Swing High/Low Window Size", min_value=1, value=10,
+                                   help = "Minimum window size for finding swing highs and lows.")
 
     # EMA parameters if "Order Block with EMA" is selected
     if strategy == "Order Block with EMA":
         c1, c2, c3 = st.columns(3)
         with c1:
-            ema1 = st.number_input("Fast EMA Length", min_value=1, value=9)
+            ema1 = st.number_input("Fast EMA Length", min_value=1, value=9,
+                                   help = "Length of Fast moving Exponential Moving Average.")
         with c2:
-            ema2 = st.number_input("Slow EMA Length", min_value=1, value=21)
+            ema2 = st.number_input("Slow EMA Length", min_value=1, value=21,
+                                   help = "Length of Slow moving Exponential Moving Average.")
         with c3:
             cross_close = st.checkbox("Close trade on EMA crossover", value=False)
     else:
         ema1, ema2, cross_close = None, None, None
+
+    with st.expander("Advanced options"):
+        c1, c2 = st.columns(2)
+        with c1:
+            initial_cash = st.number_input("Initial Cash [₹]", min_value=10000, value=10000)
+        with c2:
+            commission = st.number_input("Commission [%]", value = 0, min_value=-10, max_value=10,
+                                         help="Commission is the commission ratio. E.g. if your broker's "
+                                              "commission is 1% of trade value, set commission to 1.")
 
     # Button to run the analysis
     if st.button("Run"):
@@ -96,7 +97,9 @@ def algorithmic_trading_dashboard():
                 .update_layout(title=dict(text=ticker))
             )
 
-        backtest_results = run_strategy(ticker, strategy, period, interval, swing_hl=swing_hl, ema1=ema1, ema2=ema2, cross_close=cross_close)
+        backtest_results = run_strategy(ticker, strategy, period, interval,
+                                swing_hl=swing_hl, ema1=ema1, ema2=ema2, cross_close=cross_close,
+                                cash=initial_cash, commission=commission/100)
 
         color = "green" if backtest_results['Return [%]'].values[0] > 0 else "red"
 
@@ -105,7 +108,7 @@ def algorithmic_trading_dashboard():
         st.plotly_chart(signal_plot, width=1200)
 
         st.write(f'### :{color}[Backtest Results]')
-        cols = ['stock', 'Start', 'End', 'Return [%]', 'Equity Final [$]', 'Buy & Hold Return [%]', '# Trades',
+        cols = ['stock', 'Start', 'End', 'Return [%]', 'Equity Final [₹]', 'Buy & Hold Return [%]', '# Trades',
                 'Win Rate [%]', 'Best Trade [%]', 'Worst Trade [%]', 'Avg. Trade [%]']
         st.dataframe(backtest_results, hide_index=True, column_order=cols)
 

@@ -41,6 +41,7 @@ class SMC_test(Strategy):
 
 
 class SMC_ema(SignalStrategy, TrailingStrategy):
+    swing_window = 10
     ema1 = 9
     ema2 = 21
     close_on_crossover = False
@@ -49,8 +50,8 @@ class SMC_ema(SignalStrategy, TrailingStrategy):
         super().init()
 
         # Setting smc buy and sell indicators.
-        self.smc_b = self.I(self.smc_buy, self.data.df)
-        self.smc_s = self.I(self.smc_sell, self.data.df)
+        self.smc_b = self.I(self.smc_buy, data=self.data.df, swing_hl=self.swing_window)
+        self.smc_s = self.I(self.smc_sell, data=self.data.df, swing_hl=self.swing_window)
 
         close = self.data.Close
 

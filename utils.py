@@ -13,21 +13,21 @@ def fetch(symbol, period, interval):
     df.columns =df.columns.get_level_values(0)
     return df
 
-def smc_backtest(data, filename, swing_hl, **kwargs):
-    bt = Backtest(data, SMC_test, **kwargs)
-    results = bt.run(swing_window=swing_hl)
+def smc_backtest(data, filename, **kwargs):
+    bt = Backtest(data, SMC_test, cash=kwargs['cash'], commission=kwargs['commission'])
+    results = bt.run(swing_window=kwargs['swing_hl'])
     bt.plot(filename=filename, open_browser=False)
     return results
 
-def smc_ema_backtest(data, filename, ema1, ema2, closecross, **kwargs):
-    bt = Backtest(data, SMC_ema, **kwargs)
-    results = bt.run(ema1=ema1, ema2=ema2, close_on_crossover=closecross)
+def smc_ema_backtest(data, filename, **kwargs):
+    bt = Backtest(data, SMC_ema, cash=kwargs['cash'], commission=kwargs['commission'])
+    results = bt.run(swing_window=kwargs['swing_hl'], ema1=kwargs['ema1'], ema2=kwargs['ema2'], close_on_crossover=kwargs['cross_close'])
     bt.plot(filename=filename, open_browser=False)
     return results
 
-def smc_structure_backtest(data, filename, swing_hl, **kwargs):
-    bt = Backtest(data, SMCStructure, **kwargs)
-    results = bt.run(swing_window=swing_hl)
+def smc_structure_backtest(data, filename, **kwargs):
+    bt = Backtest(data, SMCStructure, cash=kwargs['cash'], commission=kwargs['commission'])
+    results = bt.run(swing_window=kwargs['swing_hl'])
     bt.plot(filename=filename, open_browser=False)
     return results
 
@@ -51,11 +51,11 @@ def run_strategy(ticker_symbol, strategy, period, interval, **kwargs):
     filename = f'{ticker_symbol}.html'
 
     if strategy == "Order Block":
-        backtest_results = smc_backtest(data, filename, kwargs['swing_hl'])
+        backtest_results = smc_backtest(data, filename, **kwargs)
     elif strategy == "Order Block with EMA":
-        backtest_results = smc_ema_backtest(data, filename, kwargs['ema1'], kwargs['ema2'], kwargs['cross_close'])
+        backtest_results = smc_ema_backtest(data, filename, **kwargs)
     elif strategy == "Structure trading":
-        backtest_results = smc_structure_backtest(data, filename, kwargs['swing_hl'])
+        backtest_results = smc_structure_backtest(data, filename, **kwargs)
     else:
         raise Exception('Strategy not found')
 
@@ -74,6 +74,8 @@ def run_strategy(ticker_symbol, strategy, period, interval, **kwargs):
     cols = ['stock', 'Start', 'End', 'Return [%]', 'Equity Final [$]', 'Buy & Hold Return [%]', '# Trades',
             'Win Rate [%]', 'Best Trade [%]', 'Worst Trade [%]', 'Avg. Trade [%]', 'plot']
     backtest_results = backtest_results[cols]
+
+    backtest_results = backtest_results.rename(columns = {'Equity Final [$]': 'Equity Final [₹]'})
 
     return backtest_results
 
