@@ -68,7 +68,9 @@ def complete_backtest():
                                          help="Commission is the commission ratio. E.g. if your broker's "
                                               "commission is 1% of trade value, set commission to 1.")
         with c3:
-            multiprocess = st.checkbox(f"Multiprocess (use {cpu_count()} CPUs)", value=True)
+            multiprocess = st.checkbox("Multiprocess", value=True,
+                                       help="Use multiple CPUs (if available) to parallelize the run. "
+                                            "Run time is inversely proportional to no of CPUs available.")
 
     # Button to run the analysis
     if st.button("Run"):
