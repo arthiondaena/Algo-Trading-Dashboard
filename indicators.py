@@ -610,7 +610,7 @@ def EMA(array, n):
     return pd.Series(array).ewm(span=n, adjust=False).mean()
 
 if __name__ == "__main__":
-    from utils import fetch
+    from src.utils import fetch
 
     data = fetch('ICICIBANK.NS', period='1mo', interval='15m')
     data = fetch('RELIANCE.NS', period='1mo', interval='15m')

@@ -3,7 +3,7 @@ import streamlit as st
 from streamlit.components import v1 as components
 
 from indicators import SMC
-from utils import fetch, run_strategy
+from src.utils import fetch, run_strategy
 
 def algorithmic_trading_dashboard():
     @st.cache_data

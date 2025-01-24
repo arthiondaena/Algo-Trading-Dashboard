@@ -7,31 +7,41 @@ from multiprocessing import Pool
 from itertools import repeat
 from functools import partial
 from strategies import SMC_test, SMC_ema, SMCStructure
+from src.colorer import get_logger, start_end_log
 
+logger = get_logger()
+
+@start_end_log
 def fetch(symbol, period, interval):
-    df = yf.download(symbol, period=period, interval=interval)
+    logger.info(f"Fetching {symbol} for interval {interval} and period {period}")
+    df = yf.download(symbol, period=period, interval=interval, progress=False)
     df.columns =df.columns.get_level_values(0)
     return df
 
+@start_end_log
 def smc_backtest(data, filename, **kwargs):
     bt = Backtest(data, SMC_test, cash=kwargs['cash'], commission=kwargs['commission'])
     results = bt.run(swing_window=kwargs['swing_hl'])
     bt.plot(filename=filename, open_browser=False)
     return results
 
+@start_end_log
 def smc_ema_backtest(data, filename, **kwargs):
     bt = Backtest(data, SMC_ema, cash=kwargs['cash'], commission=kwargs['commission'])
     results = bt.run(swing_window=kwargs['swing_hl'], ema1=kwargs['ema1'], ema2=kwargs['ema2'], close_on_crossover=kwargs['cross_close'])
     bt.plot(filename=filename, open_browser=False)
     return results
 
+@start_end_log
 def smc_structure_backtest(data, filename, **kwargs):
     bt = Backtest(data, SMCStructure, cash=kwargs['cash'], commission=kwargs['commission'])
     results = bt.run(swing_window=kwargs['swing_hl'])
     bt.plot(filename=filename, open_browser=False)
     return results
 
+@start_end_log
 def run_strategy(ticker_symbol, strategy, period, interval, **kwargs):
+    logger.info(f'Running {strategy} for {ticker_symbol}')
     # Fetching ohlc of random ticker_symbol.
     retries = 3
     for i in range(retries):
@@ -79,6 +89,7 @@ def run_strategy(ticker_symbol, strategy, period, interval, **kwargs):
 
     return backtest_results
 
+@start_end_log
 def complete_test(strategy: str, period: str, interval: str, multiprocess=True, **kwargs):
     nifty50 = pd.read_csv("data/ind_nifty50list.csv")
     ticker_list = pd.read_csv("data/Ticker_List_NSE_India.csv")

@@ -1,9 +1,9 @@
 import streamlit as st
 import pandas as pd
 import time
+
 from streamlit.components import v1 as components
-from utils import complete_test
-from os import cpu_count
+from src.utils import complete_test
 
 def complete_backtest():
     @st.cache_data

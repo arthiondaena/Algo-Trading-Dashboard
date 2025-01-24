@@ -4,6 +4,10 @@ from indicators import SMC, EMA
 import pandas as pd
 import numpy as np
 
+from src.colorer import get_logger
+
+logger = get_logger()
+
 class SMC_test(Strategy):
     swing_window = 10
     def init(self):
@@ -117,10 +121,9 @@ class SMCStructure(TrailingStrategy):
             try:
                 self.buy(sl=stoploss, tp=target)
             except:
-                print('Buying failed')
+                logger.warning(f'Buying failed at {price} with {stoploss=} and {target=}')
         if self.smc_s[-1] == 1:
             nearest = self.nearest_swing(self.data.df, self.swing_window)
-            print(self.data.df.iloc[-1])
             if nearest > price:
                 target = price - ((nearest - price) * .414)
                 stoploss = price + (price - target)
@@ -128,7 +131,7 @@ class SMCStructure(TrailingStrategy):
                 try:
                     self.sell(sl=stoploss, tp=target, limit=float(price))
                 except:
-                    print("Selling failed")
+                    logger.warning(f'Selling failed at {price} with {stoploss=} and {target=}')
 
         # Additionally, set aggressive stop-loss on trades that have been open
         # for more than two days
@@ -154,7 +157,7 @@ class SMCStructure(TrailingStrategy):
 strategies = {'Order Block': SMC_test, 'Order Block with EMA': SMC_ema , 'Structure trading': SMCStructure}
 
 if __name__ == "__main__":
-    from utils import fetch
+    from src.utils import fetch
     # data = fetch('ICICIBANK.NS', period='1mo', interval='15m')
     data = fetch('RELIANCE.NS', period='1mo', interval='15m')
     # data = fetch('AXISBANK.NS', period='1mo', interval='15m')
