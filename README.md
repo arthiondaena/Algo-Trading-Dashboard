@@ -28,7 +28,7 @@ parameters, and visualize backtest results. The dashboard supports multiple stra
 
 ## Huggingface Spaces Web demo
 
-Integrated into [Huggingface Spaces 🤗](https://huggingface.co/spaces) using [Streamlit](https://github.com/streamlit). Try it out [![Hugging Face Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/akhaliq/mae)
+Integrated into [Huggingface Spaces 🤗](https://huggingface.co/spaces) using [Streamlit](https://github.com/streamlit). Try it out [![Hugging Face Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/Invicto69/Algo_Trading_Dashboard_streamlit/)
 
 
 ## Installation
