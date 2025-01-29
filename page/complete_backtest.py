@@ -1,9 +1,10 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 import time
 
 from streamlit.components import v1 as components
-from src.utils import complete_test
+from src.utils import complete_test, categorize_df
 
 def complete_backtest():
     @st.cache_data
@@ -21,7 +22,7 @@ def complete_backtest():
         """
     )
 
-    st.info("Strategy runs on most of the Nifty50 stocks",  icon="ℹ️")
+    stock_list = st.selectbox("Select Stock list", ['Nifty 50', 'Nifty Next 50', 'Nifty 100', 'Nifty 200'], index=0)
 
     period_list = ['1d', '5d', '1mo', '3mo', '6mo', '1y', '2y', '5y', '10y', 'ytd', 'max']
 
@@ -55,9 +56,9 @@ def complete_backtest():
             ema2 = st.number_input("Slow EMA Length", min_value=1, value=21,
                                    help = "Length of Slow moving Exponential Moving Average.")
         with c3:
-            cross_close = st.checkbox("Close trade on EMA crossover", value=False)
+            close_on_crossover = st.checkbox("Close trade on EMA crossover", value=False)
     else:
-        ema1, ema2, cross_close = None, None, None
+        ema1, ema2, close_on_crossover = None, None, None
 
     with st.expander("Advanced options"):
         c1, c2, c3 = st.columns([2, 2, 1])
@@ -75,29 +76,60 @@ def complete_backtest():
     # Button to run the analysis
     if st.button("Run"):
         start = time.time()
-        st.session_state.results = complete_test(strategy, period, interval, multiprocess,
+        st.session_state.results = complete_test(stock_list, strategy, period, interval, multiprocess,
                                         swing_hl=swing_hl, ema1=ema1, ema2=ema2,
-                                        cross_close=cross_close, cash=initial_cash,
+                                        close_on_crossover=close_on_crossover, cash=initial_cash,
                                         commission=commission/100)
         st.success(f"Analysis finished in {round(time.time()-start, 2)} seconds")
 
     if "results" in st.session_state:
         # st.write("⬇️ Select a row in index column to get detailed information of the respective stock run.")
         st.markdown(f"""
-                    ### :orange[Nifty50 stocks backtest result by using {strategy}]
-                     ⬇️ Select a row in index column to get detailed information of the respective stock run.
+                    ---
+                    ### :orange[{stock_list} stocks backtest result by using {strategy} strategy]
+                     ⬇️ Select rows in 'Select' column to get backtest plots of the selected stocks.
                     """)
-        cols = ['stock', 'Start', 'End', 'Return [%]', 'Equity Final [₹]', 'Buy & Hold Return [%]', '# Trades', 'Win Rate [%]', 'Best Trade [%]', 'Worst Trade [%]', 'Avg. Trade [%]']
-        df = st.dataframe(st.session_state.results, hide_index=True, column_order=cols, on_select="rerun", selection_mode="single-row")
-        df.selection.rows = 1
-        if df.selection.rows:
-            row = df.selection.rows
-            ticker = st.session_state.results['stock'].values[row]
-            plot = st.session_state.results['plot'].values[row]
-            color = "green" if st.session_state.results['Return [%]'].values[row][0] > 0 else "red"
-            st.markdown(f"""
-            ### :{color}[{ticker[0]} backtest plot] 📊
-            """)
-            components.html(plot[0], height=1067)
+        st.session_state.results['Select'] = False
+
+        cols = ['Select', 'Stock', 'Sector', 'Start', 'End', 'Return [%]', 'Equity Final [₹]', 'Buy & Hold Return [%]', '# Trades', 'Win Rate [%]', 'Best Trade [%]', 'Worst Trade [%]', 'Avg. Trade [%]']
+        st.session_state.categorized_results = categorize_df(st.session_state.results, 'Sector', 'Return [%]')
+
+        st.session_state.categorized_results_dict = {}
+        st.session_state.selected_stocks = {}
+
+        for category, df in st.session_state.categorized_results.items():
+            mean = round(df['Return [%]'].mean(), 2)
+            color = "green" if mean > 0 else "red"
+            with st.expander(f"{str(category).upper()}    :{color}[Average return rate: {mean} %]"):
+                st.session_state.categorized_results_dict[category] = (
+                              st.data_editor(df,
+                                  column_config={
+                                      'Select': st.column_config.CheckboxColumn(
+                                          'Select',
+                                          default=False
+                                      )
+                                  },
+                                  hide_index=True, column_order=cols,
+                                  # on_select="rerun", selection_mode="single-row"
+                              ))
+                st.session_state.selected_stocks[category] = (
+                    np.where(st.session_state.categorized_results_dict[category]['Select']))[0]
+
+        for selected_rows in st.session_state.selected_stocks.values():
+            if len(selected_rows) > 0:
+                st.toast("Scroll to the bottom of page to view backtest plots.", icon=":material/vertical_align_bottom:")
+                st.markdown(f"""
+                            ---
+                            ### :orange[Selected stocks backtest plots by using {strategy} strategy]
+                            """)
+                break
+
+        for selected_rows in st.session_state.selected_stocks.values():
+            for row in selected_rows:
+                ticker = st.session_state.results['Stock'].values[row]
+                plot = st.session_state.results['plot'].values[row]
+                color = "green" if st.session_state.results['Return [%]'].values[row] > 0 else "red"
+                with st.expander(f":{color}[{ticker} backtest plot] 📊"):
+                    components.html(plot, height=900)
 
 complete_backtest()

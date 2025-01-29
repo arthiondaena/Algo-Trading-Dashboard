@@ -64,9 +64,9 @@ def algorithmic_trading_dashboard():
             ema2 = st.number_input("Slow EMA Length", min_value=1, value=21,
                                    help = "Length of Slow moving Exponential Moving Average.")
         with c3:
-            cross_close = st.checkbox("Close trade on EMA crossover", value=False)
+            close_on_crossover = st.checkbox("Close trade on EMA crossover", value=False)
     else:
-        ema1, ema2, cross_close = None, None, None
+        ema1, ema2, close_on_crossover = None, None, None
 
     with st.expander("Advanced options"):
         c1, c2 = st.columns(2)
@@ -98,7 +98,7 @@ def algorithmic_trading_dashboard():
             )
 
         backtest_results = run_strategy(ticker, strategy, period, interval,
-                                swing_hl=swing_hl, ema1=ema1, ema2=ema2, cross_close=cross_close,
+                                swing_hl=swing_hl, ema1=ema1, ema2=ema2, close_on_crossover=close_on_crossover,
                                 cash=initial_cash, commission=commission/100)
 
         color = "green" if backtest_results['Return [%]'].values[0] > 0 else "red"
@@ -108,7 +108,7 @@ def algorithmic_trading_dashboard():
         st.plotly_chart(signal_plot, width=1200)
 
         st.write(f'### :{color}[Backtest Results]')
-        cols = ['stock', 'Start', 'End', 'Return [%]', 'Equity Final [₹]', 'Buy & Hold Return [%]', '# Trades',
+        cols = ['Stock', 'Sector', 'Start', 'End', 'Return [%]', 'Equity Final [₹]', 'Buy & Hold Return [%]', '# Trades',
                 'Win Rate [%]', 'Best Trade [%]', 'Worst Trade [%]', 'Avg. Trade [%]']
         st.dataframe(backtest_results, hide_index=True, column_order=cols)
 

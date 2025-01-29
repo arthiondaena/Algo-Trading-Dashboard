@@ -92,11 +92,11 @@ class SMC_ema(SignalStrategy, TrailingStrategy):
                 if trade.is_short and self.ma1 > self.ma2:
                     trade.close()
 
-    def smc_buy(self, data):
-        return SMC(data).backtest_buy_signal_ob()
+    def smc_buy(self, data, swing_hl):
+        return SMC(data, swing_hl).backtest_buy_signal_ob()
 
-    def smc_sell(self, data):
-        return SMC(data).backtest_sell_signal_ob()
+    def smc_sell(self, data, swing_hl):
+        return SMC(data, swing_hl).backtest_sell_signal_ob()
 
 
 class SMCStructure(TrailingStrategy):

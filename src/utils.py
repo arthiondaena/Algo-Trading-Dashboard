@@ -28,7 +28,7 @@ def smc_backtest(data, filename, **kwargs):
 @start_end_log
 def smc_ema_backtest(data, filename, **kwargs):
     bt = Backtest(data, SMC_ema, cash=kwargs['cash'], commission=kwargs['commission'])
-    results = bt.run(swing_window=kwargs['swing_hl'], ema1=kwargs['ema1'], ema2=kwargs['ema2'], close_on_crossover=kwargs['cross_close'])
+    results = bt.run(swing_window=kwargs['swing_hl'], ema1=kwargs['ema1'], ema2=kwargs['ema2'], close_on_crossover=kwargs['close_on_crossover'])
     bt.plot(filename=filename, open_browser=False)
     return results
 
@@ -41,6 +41,8 @@ def smc_structure_backtest(data, filename, **kwargs):
 
 @start_end_log
 def run_strategy(ticker_symbol, strategy, period, interval, **kwargs):
+    default_kwargs = {'swing_hl': 10, 'ema1': 9, 'ema2':21, 'close_on_crossover': False, 'cash': 10000, 'commission': 0}
+    kwargs = default_kwargs | kwargs
     logger.info(f'Running {strategy} for {ticker_symbol}')
     # Fetching ohlc of random ticker_symbol.
     retries = 3
@@ -77,11 +79,13 @@ def run_strategy(ticker_symbol, strategy, period, interval, **kwargs):
     # Converting pd.Series to pd.Dataframe
     backtest_results = backtest_results.to_frame().transpose()
 
-    backtest_results['stock'] = ticker_symbol
+    backtest_results['Stock'] = ticker_symbol
     backtest_results['plot'] = plot
+    backtest_results['Sector'] = yf.Ticker(ticker_symbol).info.get('sectorKey')
+    backtest_results['Return [%]'] = backtest_results['Return [%]'].apply(lambda x: round(x, 2))
 
     # Reordering columns.
-    cols = ['stock', 'Start', 'End', 'Return [%]', 'Equity Final [$]', 'Buy & Hold Return [%]', '# Trades',
+    cols = ['Stock', 'Sector', 'Start', 'End', 'Return [%]', 'Equity Final [$]', 'Buy & Hold Return [%]', '# Trades',
             'Win Rate [%]', 'Best Trade [%]', 'Worst Trade [%]', 'Avg. Trade [%]', 'plot']
     backtest_results = backtest_results[cols]
 
@@ -90,18 +94,21 @@ def run_strategy(ticker_symbol, strategy, period, interval, **kwargs):
     return backtest_results
 
 @start_end_log
-def complete_test(strategy: str, period: str, interval: str, multiprocess=True, **kwargs):
-    nifty50 = pd.read_csv("data/ind_nifty50list.csv")
+def complete_test(stock_list: str, strategy: str, period: str, interval: str, multiprocess: bool, **kwargs):
+    stock_list_map = {'Nifty 50': 'data/ind_nifty50list.csv', 'Nifty Next 50': 'data/ind_niftynext50list.csv', 'Nifty 100': 'data/ind_nifty100list.csv', 'Nifty 200': 'data/ind_nifty200list.csv'}
+    nifty_stocks = pd.read_csv(stock_list_map[stock_list])
+    nifty_stocks.columns = [x.upper() for x in nifty_stocks.columns]
+    logger.info(f"stock list columns: {nifty_stocks.columns}")
     ticker_list = pd.read_csv("data/Ticker_List_NSE_India.csv")
 
     # Merging nifty50 and ticker_list dataframes to get 'YahooEquiv' column.
-    nifty50 = nifty50.merge(ticker_list, "inner", left_on=['Symbol'], right_on=['SYMBOL'])
+    nifty_stocks = nifty_stocks.merge(ticker_list, "inner", 'SYMBOL')
 
     if multiprocess:
         with Pool() as p:
-            result = p.starmap(partial(run_strategy, **kwargs), zip(nifty50['YahooEquiv'].values, repeat(strategy), repeat(period), repeat(interval)))
+            result = p.starmap(partial(run_strategy, **kwargs), zip(nifty_stocks['YahooEquiv'].values, repeat(strategy), repeat(period), repeat(interval)))
     else:
-        result = [run_strategy(nifty50['YahooEquiv'].values[i], strategy, period, interval, **kwargs) for i in range(len(nifty50))]
+        result = [run_strategy(nifty_stocks['YahooEquiv'].values[i], strategy, period, interval, **kwargs) for i in range(len(nifty_stocks))]
 
     df = pd.concat(result)
 
@@ -110,12 +117,32 @@ def complete_test(strategy: str, period: str, interval: str, multiprocess=True, 
 
     return df.reset_index().drop(columns=['index'])
 
+def categorize_df(df: pd.DataFrame, col: str, sort_col: str | None = None):
+    categorized = df.groupby(col, sort=False)
+    mapping = {}
+    for name, group in categorized:
+        mapping[name] = group
+        # print(f"{name} mean: ", group[sort_col].mean())
+    # print(sorted(mapping.values(), key = lambda item: item[sort_col].mean(), reverse=True))
+    if sort_col:
+        mapping = dict([('all', df)]+sorted(mapping.items(), key = lambda item: item[1][sort_col].mean(), reverse=True))
+
+    for category, df in mapping.items():
+        mapping[category] = df.sort_values(by=[sort_col], ascending=False)
+    # print(mapping)
+    return mapping
 
 if __name__ == "__main__":
+    # pass
     # random_testing("")
     # data = fetch('RELIANCE.NS', period='1y', interval='15m')
     # df = yf.download('RELIANCE.NS', period='1yr', interval='15m')
+    # rt.to_excel('test/all_testing_2.xlsx', index=False)
+    #
+    # print(rt)
 
-    rt = complete_test("Order Block", '1mo', '15m', swing_hl=20)
-    rt.to_excel('test/all_testing_2.xlsx', index=False)
-    print(rt)
+    data = pd.read_csv(r"C:\Users\Dinesh\Downloads\Documents\2025-01-26T12-37_export.csv")
+    data = data[data['Select']]
+    print(data)
+    mapping = categorize_df(data, 'Sector', 'Return [%]')
+    print(mapping)

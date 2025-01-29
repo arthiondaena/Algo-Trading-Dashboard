@@ -116,7 +116,7 @@ def get_logger():
                         format="[%(asctime)s] %(levelname)s [%(filename)s.%(funcName)s:%(lineno)d] %(message)s",
                         datefmt='%d %b %Y %H:%M:%S',
                         handlers=[
-                            logging.FileHandler(f"logs/{"warning"}.log"),
+                            logging.FileHandler("logs/warning.log"),
                             logging.StreamHandler()
                         ])
 
